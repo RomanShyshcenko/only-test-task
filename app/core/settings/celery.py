@@ -3,13 +3,9 @@ from __future__ import absolute_import, unicode_literals
 import logging
 import os
 
-from celery import shared_task, Celery
+from celery import Celery
 from django.conf import settings
 
-from selenium.webdriver.common.by import By
-
-from only_fans_stat.models import Links, AccountDetail
-from selenium import webdriver
 
 from configurations import importer
 
