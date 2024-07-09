@@ -1,0 +1,56 @@
+version: '3.8'
+services:
+  only-db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5433:5432'
+    volumes:
+      - only-db:/var/lib/postgresql/data1
+
+  only-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings  # variables for pytest
+    volumes:
+      - ./app:/app
+    ports:
+      - '8000:8000'
+    depends_on:
+      - only-db
+    command: python manage.py runserver 0.0.0.0:8000
+
+  redis:
+    image: redis:7.2.4-alpine
+    ports:
+      - "6379:6379"
+  celery:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['celery', '-A', 'core.settings', 'beat', '-l', 'info', '--scheduler', 'django_celery_beat.schedulers:DatabaseScheduler']
+    volumes:
+      - ./app:/app
+
+    env_file:
+      - app/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings
+      - DB_HOST=db
+      - DB_NAME=app
+      - DB_USER=postgres
+      - DB_PASS=supersecretpassword
+    depends_on:
+      - only-db
+      - redis
+      - only-web
+volumes:
+  only-db:
+    driver: local
